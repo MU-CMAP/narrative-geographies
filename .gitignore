@@ -1,0 +1,6 @@
+# Ignore dependencies
+node_modules/
+.next/
+.vercel
+dist/
+build/
