@@ -6,11 +6,17 @@ export const metadata = {
   description: "Mapping Port Harcourt's waterfront communities",
 };
 
-export default function RootLayout({ children }) {
+/**
+ * ✅ Root Layout Component
+ * - Defines the overall structure of the application.
+ * - Uses Next.js's App Router conventions.
+ * - Ensures no unintended whitespace to avoid hydration errors.
+ */
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="antialiased">
-        {children}
+    <html lang="en">{/* ✅ Defines the document language */}
+      <body className="antialiased">{/* ✅ Applies smooth font rendering */}
+        {children} {/* ✅ Renders the page content dynamically */}
       </body>
     </html>
   );

@@ -1,31 +1,29 @@
+/* Import custom fonts */
 @import '../styles/fonts.css';
 
+/* Tailwind base layer to apply preflight normalization */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* 🌍 Define global theme variables for consistency */
 :root {
-  --font-gotham: 'Gotham', system-ui, sans-serif;
+  --font-gotham: 'Gotham', system-ui, sans-serif; /* Main font */
+  --background: #ffffff; /* Default light theme background */
+  --foreground: #171717; /* Default text color */
 }
 
-body {
-  font-family: var(--font-gotham);
-}
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* 🌙 Dark mode theme settings */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0a0a0a; /* Dark mode background */
+    --foreground: #ededed; /* Light text color for dark mode */
   }
 }
 
+/* Apply global styles to body */
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--foreground); /* Use theme-defined foreground color */
+  background: var(--background); /* Use theme-defined background */
+  font-family: var(--font-gotham); /* Apply Gotham font globally */
 }

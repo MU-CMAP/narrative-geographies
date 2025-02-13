@@ -1,0 +1,18 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [7.0500, 4.7680]
+        },
+        "properties": {
+          "id": "story1",
+          "title": "A Local Story",
+          "description": "This is a story about community engagement and local culture."
+        }
+      }
+    ]
+  }
+  

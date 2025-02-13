@@ -4,3 +4,7 @@ node_modules/
 .vercel
 dist/
 build/
+# Project snapshots
+*_snapshot.txt
+._*_snapshot.txt
+create_snapshot.sh
