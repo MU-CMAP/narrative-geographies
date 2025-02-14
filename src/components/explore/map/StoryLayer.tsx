@@ -1,14 +1,17 @@
 /**
  * StoryLayer.tsx
  *
- * This component loads story marker data from a GeoJSON file and adds it as a Mapbox source and layer
- * when the mode prop is "story". In "data" mode, it removes the layer.
+ * Loads story marker data from a GeoJSON file and adds it as a Mapbox source and circle layer.
+ * In "story" mode, it displays the markers; in "data" mode, it removes them.
  *
- * Debug styling is applied for visibility (bright red circles with increased radius).
+ * Debug styling is applied for visibility (bright red circles).
+ * 
+ * Future CMS Integration Note:
+ * - Replace the static geojsonUrl with a dynamic query to the CMS.
+ * - Ensure each story feature includes a unique identifier (e.g. story_id) to match CMS records.
  *
- * To avoid the race condition where the style isn’t fully ready when calling addSource,
- * we wrap the addSource call in a try–catch block. If an error occurs indicating "Style is not done loading",
- * we wait for the "style.load" event and then check whether the source already exists before retrying.
+ * The addSource logic includes a try–catch block with a retry mechanism to handle cases where
+ * the map style isn't fully loaded. Detailed console logs assist in debugging.
  */
 
 "use client";
@@ -18,7 +21,7 @@ import mapboxgl from "mapbox-gl";
 import { useMap } from "./BaseMap";
 
 interface StoryLayerProps {
-  geojsonUrl?: string;         // URL to fetch the story GeoJSON; defaults provided
+  geojsonUrl?: string;         // URL to fetch the story GeoJSON; to be replaced with CMS-driven data in future
   mode: "story" | "data";       // Determines whether the layer should be visible
   onStoryClick?: (feature: GeoJSON.Feature) => void; // Optional callback for marker clicks
 }
@@ -28,16 +31,17 @@ const StoryLayer: React.FC<StoryLayerProps> = ({
   mode,
   onStoryClick,
 }) => {
+  // Retrieve the map instance and the mapLoaded flag from context.
   const { map, mapLoaded } = useMap();
 
   useEffect(() => {
-    // If the map or style isn’t ready, exit early.
+    // Exit early if the map or style is not yet ready.
     if (!map || !mapLoaded) {
       console.log("StoryLayer: Map not ready or style not loaded yet.");
       return;
     }
     
-    // If mode is not "story", remove any existing story layer and source.
+    // In modes other than "story", remove existing story layers and sources.
     if (mode !== "story") {
       if (map.getLayer("story-markers")) {
         map.removeLayer("story-markers");
@@ -52,8 +56,9 @@ const StoryLayer: React.FC<StoryLayerProps> = ({
     
     console.log("StoryLayer: Map and style are loaded. Executing addStoryLayer().");
 
-    // Define the function that adds (or updates) the source and layer.
+    // Define a function to fetch GeoJSON data and add/update the story layer.
     const addStoryLayer = () => {
+      // Fetch the story GeoJSON data.
       fetch(geojsonUrl)
         .then((res) => {
           if (!res.ok) {
@@ -63,19 +68,19 @@ const StoryLayer: React.FC<StoryLayerProps> = ({
         })
         .then((data) => {
           console.log("StoryLayer: Fetched GeoJSON data:", data);
-          // If the source doesn't exist, try to add it.
+          // Check if the source already exists.
           if (!map.getSource("stories-data")) {
             console.log("StoryLayer: Attempting to add new source 'stories-data'.");
             try {
+              // Add the source with the fetched data.
               map.addSource("stories-data", { type: "geojson", data });
               console.log("StoryLayer: Successfully added source 'stories-data'.");
             } catch (err) {
-              // If we catch an error indicating the style isn’t loaded,
-              // wait for "style.load" then check again.
+              // If style isn't loaded, wait for the "style.load" event and retry.
               if (err instanceof Error && err.message.includes("Style is not done loading")) {
                 console.log("StoryLayer: Caught 'Style is not done loading' error. Waiting for style.load event and retrying.");
                 map.once("style.load", () => {
-                  // Before retrying, check if the source now exists.
+                  // On retry, if the source still doesn't exist, add it; otherwise update its data.
                   if (!map.getSource("stories-data")) {
                     try {
                       map.addSource("stories-data", { type: "geojson", data });
@@ -85,11 +90,10 @@ const StoryLayer: React.FC<StoryLayerProps> = ({
                       return;
                     }
                   } else {
-                    // If the source already exists, update it.
                     (map.getSource("stories-data") as mapboxgl.GeoJSONSource).setData(data);
                     console.log("StoryLayer: Source 'stories-data' already exists on retry; updated data.");
                   }
-                  // Proceed to add the layer if it doesn’t exist.
+                  // Proceed to add the layer if not already present.
                   if (!map.getLayer("story-markers")) {
                     try {
                       map.addLayer({
@@ -98,13 +102,14 @@ const StoryLayer: React.FC<StoryLayerProps> = ({
                         source: "stories-data",
                         layout: { visibility: "visible" },
                         paint: {
-                          "circle-radius": 10,          // Debug radius
-                          "circle-color": "#FF0000",      // Bright red
+                          "circle-radius": 10,
+                          "circle-color": "#FF0000",      // Bright red for debug
                           "circle-stroke-color": "#FFFFFF",
                           "circle-stroke-width": 2,
                         },
                       });
                       console.log("StoryLayer: Added layer 'story-markers' after retry.");
+                      // Attach click handler if provided.
                       if (onStoryClick) {
                         const clickHandler = (e: mapboxgl.MapLayerMouseEvent) => {
                           const feature = e.features && e.features[0];
@@ -118,12 +123,13 @@ const StoryLayer: React.FC<StoryLayerProps> = ({
                     }
                   }
                 });
-                return; // Exit current attempt; retry will handle the addition.
+                return; // Exit the current attempt; the retry will handle further actions.
               } else {
-                throw err; // Propagate error if it’s not the "style not loaded" error.
+                // If error is of a different type, propagate it.
+                throw err;
               }
             }
-            // If we successfully added the source, add the story layer.
+            // If the source is added successfully, add the story layer.
             try {
               map.addLayer({
                 id: "story-markers",
@@ -158,10 +164,10 @@ const StoryLayer: React.FC<StoryLayerProps> = ({
         .catch((err) => console.error("StoryLayer: Error loading story GeoJSON:", err));
     };
 
-    // Call the function to add the story layer.
+    // Call the function to add/update the story layer.
     addStoryLayer();
 
-    // Cleanup: remove the layer and source on component unmount.
+    // Cleanup: remove the story layer and source when the component unmounts.
     return () => {
       if (map.getLayer("story-markers")) {
         map.removeLayer("story-markers");
