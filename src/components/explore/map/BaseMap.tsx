@@ -109,10 +109,10 @@ export function BaseMap({ mode, children }: BaseMapProps) {
   // Render the map container and conditionally render child components only after the style has loaded.
   return (
     <MapContext.Provider value={{ map: map.current, mapLoaded }}>
-      <div ref={mapContainer} className="w-full h-full relative">
-        {/* Render child layers only after the map style has fully loaded */}
+      {/* The container div now includes id="map" to allow smooth scrolling */}
+      <div ref={mapContainer} id="map" className="w-full h-full relative">
         {mapLoaded && children}
       </div>
     </MapContext.Provider>
-  );
+  );  
 }
