@@ -2,16 +2,14 @@
  * StoryLayer.tsx
  *
  * Loads story marker data from a GeoJSON file and adds it as a Mapbox source and circle layer.
- * In "story" mode, it displays the markers; in "data" mode, it removes them.
+ * Uses the global AppContext to determine visibility based on the application mode.
+ * In "STORIES" mode, it displays the markers; in "DATA" mode, it removes them.
  *
  * Debug styling is applied for visibility (bright red circles).
  * 
  * Future CMS Integration Note:
  * - Replace the static geojsonUrl with a dynamic query to the CMS.
  * - Ensure each story feature includes a unique identifier (e.g. story_id) to match CMS records.
- *
- * The addSource logic includes a try–catch block with a retry mechanism to handle cases where
- * the map style isn't fully loaded. Detailed console logs assist in debugging.
  */
 
 "use client";
@@ -19,20 +17,22 @@
 import React, { useEffect } from "react";
 import mapboxgl from "mapbox-gl";
 import { useMap } from "./BaseMap";
+import { useAppContext } from "../../../context/AppContext";
 
 interface StoryLayerProps {
   geojsonUrl?: string;         // URL to fetch the story GeoJSON; to be replaced with CMS-driven data in future
-  mode: "story" | "data";       // Determines whether the layer should be visible
   onStoryClick?: (feature: GeoJSON.Feature) => void; // Optional callback for marker clicks
 }
 
 const StoryLayer: React.FC<StoryLayerProps> = ({
   geojsonUrl = "/geojson/stories/stories.json",
-  mode,
   onStoryClick,
 }) => {
   // Retrieve the map instance and the mapLoaded flag from context.
   const { map, mapLoaded } = useMap();
+  
+  // Get the current mode from the global app context
+  const { mode } = useAppContext();
 
   useEffect(() => {
     // Exit early if the map or style is not yet ready.
@@ -41,8 +41,8 @@ const StoryLayer: React.FC<StoryLayerProps> = ({
       return;
     }
     
-    // In modes other than "story", remove existing story layers and sources.
-    if (mode !== "story") {
+    // In modes other than "STORIES", remove existing story layers and sources.
+    if (mode !== "STORIES") {
       if (map.getLayer("story-markers")) {
         map.removeLayer("story-markers");
         console.log("StoryLayer: Removed layer 'story-markers' due to mode change.");

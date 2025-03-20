@@ -1,11 +1,17 @@
-// src/lib/mapbox/config.ts
-// This configuration defines our Mapbox settings.
-// We explicitly type the center as a tuple [number, number] and
-// bounds as a tuple of two such tuples to satisfy Mapbox GL's type requirements.
+/**
+ * Mapbox configuration
+ * 
+ * This file defines the core map settings including styles, center coordinates,
+ * zoom levels, and boundary constraints.
+ * 
+ * Different styles are defined for story mode and data mode, allowing the map
+ * appearance to change based on the current view context.
+ */
+
 export const MAPBOX_CONFIG = {
   style: 'mapbox://styles/mapbox/light-v11', // Default style
-  storyStyle: 'mapbox://styles/mapbox/light-v11', // Used in Story mode
-  dataStyle: 'mapbox://styles/mapbox/streets-v11', // Used in Data mode
+  storyStyle: 'mapbox://styles/mapbox/light-v11', // Used in Story mode 
+  dataStyle: 'mapbox://styles/mapbox/streets-v11', // Used in Data mode - make sure this is different
   center: [7.0498, 4.7676] as [number, number], // Port Harcourt coordinates
   zoom: 12,
   bounds: [

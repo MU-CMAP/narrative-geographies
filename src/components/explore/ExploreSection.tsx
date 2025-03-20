@@ -1,35 +1,62 @@
 // src/components/explore/ExploreSection.tsx
 "use client";
 
+import { useState } from "react";
 import { BaseMap } from "./map/BaseMap";
 import { CommunityLayer } from "./map/CommunityLayer";
 import StructureLayer from "./map/StructureLayer";
 import StoryLayer from "./map/StoryLayer";
 import RightPanel from "./RightPanel";
-import { useState } from "react";
+import { useAppContext } from "../../context/AppContext";
 
+/**
+ * ExploreSection component
+ * 
+ * This is the main container for the interactive map exploration section.
+ * It uses the global AppContext to manage state for:
+ * - Current mode (STORIES/DATA)
+ * - Panel visibility
+ * - Welcome box visibility
+ * 
+ * It conditionally renders map layers based on the current mode.
+ */
 export default function ExploreSection() {
-  // State to track active tab (STORIES vs. DATA)
-  const [activeTab, setActiveTab] = useState<"STORIES" | "DATA">("STORIES");
-  // State to control the right panel visibility
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
-  // State to optionally hide the welcome box
+  // Access global app context
+  const { 
+    mode, 
+    setMode,
+    rightPanelOpen, 
+    setRightPanelOpen
+  } = useAppContext();
+  
+  // State for welcome box visibility (local state since it's UI-specific)
   const [showWelcomeBox, setShowWelcomeBox] = useState(true);
+  
+  // Story marker click handler
+  const handleStoryClick = (feature: GeoJSON.Feature) => {
+    console.log("Story clicked:", feature.properties);
+    // In the future, this will set the selected story in global state
+    // and trigger the right panel to show story details
+    setRightPanelOpen(true);
+  };
 
   return (
     <div className="relative h-screen w-full bg-gray-200">
       {/* Control Panel: Stories/Data Icons & Expand Button */}
       <div
         className={`absolute top-5 right-5 z-50 flex items-stretch transition-transform duration-500 ${
-          isPanelOpen ? "-translate-x-[400px]" : "translate-x-0"
+          rightPanelOpen ? "-translate-x-[400px]" : "translate-x-0"
         }`}
       >
         <div className="flex mr-6">
           {/* STORIES Icon Button */}
           <button
-            onClick={() => setActiveTab("STORIES")}
+            onClick={() => {
+              console.log("Setting mode to STORIES");
+              setMode("STORIES");
+            }}
             className={`flex items-center gap-2 px-4 py-1 text-sm font-bold transition-all ${
-              activeTab === "STORIES"
+              mode === "STORIES"
                 ? "bg-gray-600 text-white"
                 : "bg-gray-300 text-gray-800"
             }`}
@@ -52,9 +79,12 @@ export default function ExploreSection() {
           </button>
           {/* DATA Icon Button */}
           <button
-            onClick={() => setActiveTab("DATA")}
+            onClick={() => {
+              console.log("Setting mode to DATA");
+              setMode("DATA");
+            }}
             className={`flex items-center gap-2 px-4 py-1 text-sm font-bold transition-all ${
-              activeTab === "DATA"
+              mode === "DATA"
                 ? "bg-gray-600 text-white"
                 : "bg-gray-300 text-gray-800"
             }`}
@@ -67,7 +97,7 @@ export default function ExploreSection() {
               stroke="currentColor"
               className="w-5 h-5"
             >
-              <ellipse cx="12" cy="6.5" rx="7.5" ry="2.5" />
+              <path d="M12 6.5a7.5 2.5 0 100 0 7.5 2.5 0 000 0z" />
               <path d="M4.5 6.5V17.5c0 1.38 3.36 2.5 7.5 2.5s7.5-1.12 7.5-2.5V6.5" />
             </svg>
             DATA
@@ -75,10 +105,10 @@ export default function ExploreSection() {
         </div>
         {/* Expand/Collapse Button */}
         <button
-          onClick={() => setIsPanelOpen(!isPanelOpen)}
+          onClick={() => setRightPanelOpen(!rightPanelOpen)}
           className="px-4 py-2 bg-gray-300 text-gray-800 hover:bg-gray-400 transition-all"
         >
-          {isPanelOpen ? ">" : "<"}
+          {rightPanelOpen ? ">" : "<"}
         </button>
       </div>
 
@@ -86,7 +116,7 @@ export default function ExploreSection() {
       {showWelcomeBox && (
         <div
           className={`absolute top-20 right-5 z-50 bg-black text-white p-4 shadow-lg transition-transform duration-500 ${
-            isPanelOpen ? "-translate-x-[400px]" : "translate-x-0"
+            rightPanelOpen ? "-translate-x-[400px]" : "translate-x-0"
           }`}
           style={{ width: "287px" }}
         >
@@ -106,22 +136,15 @@ export default function ExploreSection() {
 
       {/* Integrated Map */}
       <div className="absolute inset-0">
-        <BaseMap mode={activeTab === "STORIES" ? "story" : "data"}>
+        <BaseMap>
           <CommunityLayer />
           <StructureLayer />
-          {activeTab === "STORIES" && (
-            <StoryLayer
-              mode="story"
-              onStoryClick={(feature) => {
-                console.log("Story clicked:", feature.properties);
-              }}
-            />
-          )}
+          <StoryLayer onStoryClick={handleStoryClick} />
         </BaseMap>
       </div>
 
       {/* Right Panel for Additional Content */}
-      <RightPanel isOpen={isPanelOpen} />
+      <RightPanel isOpen={rightPanelOpen} />
     </div>
   );
 }

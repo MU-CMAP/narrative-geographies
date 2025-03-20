@@ -3,15 +3,17 @@
  *
  * Purpose:
  * Initializes the Mapbox map instance and provides it (along with its loading state)
- * via a React Context. The map style is switched based on the `mode` prop ("story" or "data").
+ * via a React Context. The map style is switched based on the application mode
+ * ("STORIES" or "DATA") from the global context.
  *
  * Dependencies:
  * - React (useRef, useEffect, useState, createContext, useContext)
  * - Mapbox GL JS
+ * - AppContext for global application state
  * - MAPBOX_CONFIG from ../../../lib/mapbox/config
  *
  * IMPORTANT:
- * - The container div must have defined dimensions (e.g. Tailwind’s h-screen).
+ * - The container div must have defined dimensions (e.g. Tailwind's h-screen).
  * - Ensure NEXT_PUBLIC_MAPBOX_TOKEN in your .env.local file is valid.
  */
 
@@ -20,11 +22,11 @@
 import React, { useRef, useEffect, useState, ReactNode, createContext, useContext } from "react";
 import mapboxgl from "mapbox-gl";
 import { MAPBOX_CONFIG } from "../../../lib/mapbox/config";
+import { useAppContext, AppMode } from "../../../context/AppContext";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 // Define the props interface for BaseMap.
 interface BaseMapProps {
-  mode: "story" | "data";  // Determines which style to use.
   children?: ReactNode;    // Child components (e.g., layers) that depend on the map.
 }
 
@@ -43,7 +45,10 @@ export function useMap() {
 }
 
 // BaseMap component definition.
-export function BaseMap({ mode, children }: BaseMapProps) {
+export function BaseMap({ children }: BaseMapProps) {
+  // Access global app context
+  const { mode } = useAppContext();
+  
   // Create a ref for the map container.
   const mapContainer = useRef<HTMLDivElement>(null);
   // Create a ref for the Mapbox map instance.
@@ -59,10 +64,13 @@ export function BaseMap({ mode, children }: BaseMapProps) {
     if (!mapContainer.current) return;
     console.log("📌 BaseMap: Initializing Mapbox map...");
 
+    // Determine the initial style based on the mode from context
+    const initialStyle = mode === "STORIES" ? MAPBOX_CONFIG.storyStyle : MAPBOX_CONFIG.dataStyle;
+
     // Create the map instance using configuration settings.
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: mode === "story" ? MAPBOX_CONFIG.storyStyle : MAPBOX_CONFIG.dataStyle,
+      style: initialStyle,
       center: MAPBOX_CONFIG.center,
       zoom: MAPBOX_CONFIG.zoom,
       bounds: MAPBOX_CONFIG.bounds,
@@ -86,25 +94,38 @@ export function BaseMap({ mode, children }: BaseMapProps) {
     };
   }, []); // Empty dependency array: run once on mount.
 
-  // Update the map style when the mode changes.
-  useEffect(() => {
-    // Only proceed if the map is initialized and the style is loaded.
-    if (!map.current || !mapLoaded) return;
-    console.log(`🔄 BaseMap: Switching map to "${mode}" mode...`);
-
-    // Determine the new style based on the mode.
-    const newStyle = mode === "story" ? MAPBOX_CONFIG.storyStyle : MAPBOX_CONFIG.dataStyle;
-
-    // Force a style update:
-    setMapLoaded(false);               // Reset the loaded state.
-    map.current.setStyle(newStyle);    // Update the style.
+ // Update the map style when the mode changes.
+useEffect(() => {
+  // Only proceed if the map is initialized and the style is loaded.
+  if (!map.current) {
+    console.log("BaseMap: Map not initialized yet");
+    return;
+  }
+  
+  console.log(`🔄 BaseMap: Attempting to switch map to "${mode}" mode...`);
+  
+  try {
+    // Determine the new style based on the mode from context
+    const newStyle = mode === "STORIES" ? MAPBOX_CONFIG.storyStyle : MAPBOX_CONFIG.dataStyle;
+    console.log("New style to be applied:", newStyle);
     
-    // Once the new style has loaded, update the state.
-    map.current.once("style.load", () => {
+    // First set mapLoaded to false to prevent layer updates during style change
+    setMapLoaded(false);
+    
+    // Set the style and handle the style.load event
+    map.current.once('style.load', () => {
       console.log("✅ BaseMap: Map style reloaded successfully.");
       setMapLoaded(true);
     });
-  }, [mode]); // Run whenever the mode prop changes.
+    
+    // Now set the style
+    map.current.setStyle(newStyle);
+  } catch (error) {
+    console.error("Error setting map style:", error);
+    // Reset mapLoaded state in case of error
+    setMapLoaded(true);
+  }
+}, [mode]); // Only depend on mode changes, not mapLoaded
 
   // Render the map container and conditionally render child components only after the style has loaded.
   return (
